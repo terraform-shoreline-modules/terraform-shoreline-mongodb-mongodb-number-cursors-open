@@ -1,0 +1,142 @@
+{
+  "name": "mongodb_number_cursors_open_incident",
+  "description": "A MongoDB number cursors open incident occurs when there are too many cursors opened by MongoDB for clients, usually exceeding 10,000, which can cause performance issues and impact the overall stability of the system. This incident needs to be addressed promptly to ensure that the number of cursors is reduced to a manageable level, and that the issue does not recur.",
+  "params": [
+    {
+      "name": "MONGODB_USER",
+      "value": ""
+    },
+    {
+      "name": "MONGODB_PASSWORD",
+      "value": ""
+    },
+    {
+      "name": "MONGODB_OWNER",
+      "value": ""
+    },
+    {
+      "name": "POOL_SIZE",
+      "value": ""
+    },
+    {
+      "name": "MONGODB_INSTANCE",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## MongoDB number cursors open incident.\nA MongoDB number cursors open incident occurs when there are too many cursors opened by MongoDB for clients, usually exceeding 10,000, which can cause performance issues and impact the overall stability of the system. This incident needs to be addressed promptly to ensure that the number of cursors is reduced to a manageable level, and that the issue does not recur."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 1. Check MongoDB version"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `mongo --version`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 2. Check number of open cursors for each database"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `mongo --eval \"db._adminCommand( { serverStatus: 1 } ).cursors\"`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 3. Check the number of clients and connections for MongoDB"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `netstat -an | grep 27017 | grep ESTABLISHED | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -nr`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 4. Check the current open file limit for the MongoDB process"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `cat /proc/$(pidof mongod)/limits | grep \"open files\"`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 5. Check the ulimit settings for the MongoDB process owner"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo su - ${MONGODB_OWNER} -c \"ulimit -a\"`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 6. Check the MongoDB logs for any errors related to open cursors"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `tail -n 1000 /var/log/mongodb/mongod.log | grep \"Too many open cursors\"`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## 7. Check the MongoDB configuration file for cursor-related settings"
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `cat /etc/mongod.conf | grep cursor`"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Reduce the number of open cursors in MongoDB"
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_mongodb_cursors_and_connection_pooling($MONGODB_USER, $MONGODB_PASSWORD, $POOL_SIZE, $MONGODB_INSTANCE)"
+    }
+  ]
+}
